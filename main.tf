@@ -1,15 +1,15 @@
 resource "newrelic_alert_policy" "alert_policy" {
-  name = var.policy_name
+  name                = var.policy_name
   incident_preference = var.incident_preference
 }
 
 resource "newrelic_synthetics_monitor" "monitor" {
-  status            = "ENABLED"
-  name              = var.synthetics_monitor_name
-  period            = var.synthetics_monitor_period
-  uri               = var.application_url
-  type              = "SIMPLE"
-  locations_public  = var.synthetics_public_location
+  status           = "ENABLED"
+  name             = var.synthetics_monitor_name
+  period           = var.synthetics_monitor_period
+  uri              = var.application_url
+  type             = "SIMPLE"
+  locations_public = var.synthetics_public_location
 
   treat_redirect_as_failure = var.synthetics_treat_redirect_as_failure
   # validation_string         = "Healthy"
@@ -38,54 +38,54 @@ resource "newrelic_synthetics_multilocation_alert_condition" "synthetics_multilo
   ]
 
   critical {
-    threshold = 2
+    threshold = var.synthetics_multilocation_critical_threshold
   }
 
   warning {
-    threshold = 1
+    threshold = var.synthetics_multilocation_warning_threshold
   }
 }
 
 resource "newrelic_notification_destination" "notification_destination_email" {
   # account_id = 12345678
-  name = "email-example"
-  type = "EMAIL"
+  name = var.notification_destination_name
+  type = var.notification_destination_type
 
   property {
-    key = "email"
-    value = "lvp.celinski@gmail.com"
+    key   = "email"
+    value = var.notification_destination_email
   }
 }
 
-resource "newrelic_notification_channel" "notification_example" {
+resource "newrelic_notification_channel" "notification_channel" {
   # account_id = 12345678
-  name = "email-example"
-  type = "EMAIL"
+  name           = var.notification_channel_name
+  type           = var.notification_channel_type
   destination_id = newrelic_notification_destination.notification_destination_email.id
-  product = "IINT"
+  product        = "IINT"
 
   property {
-    key = "subject"
-    value = "Synthetic error"
+    key   = var.notification_channel_key
+    value = var.notification_channel_value
   }
 }
 
-resource "newrelic_workflow" "workflow-example" {
-  name = "workflow-example"
-  muting_rules_handling = "NOTIFY_ALL_ISSUES"
+resource "newrelic_workflow" "workflow" {
+  name                  = var.workflow_name
+  muting_rules_handling = var.workflow_muting_rules_handling
 
   issues_filter {
-    name = "Filter-name"
+    name = var.workflow_issues_filter_name
     type = "FILTER"
 
     predicate {
-      attribute = "labels.policyIds"
-      operator = "EXACTLY_MATCHES"
-      values = [ newrelic_alert_policy.alert_policy.id ]
+      attribute = var.workflow_predicate_attribute
+      operator  = var.workflow_predicate_operator
+      values    = [newrelic_alert_policy.alert_policy.id]
     }
   }
 
   destination {
-    channel_id = newrelic_notification_channel.notification_example.id
+    channel_id = newrelic_notification_channel.notification_channel.id
   }
 }

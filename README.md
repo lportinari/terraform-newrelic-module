@@ -99,9 +99,6 @@ locals {
       aggregation_window             = 60
       aggregation_method             = "event_flow"
       aggregation_delay              = 120
-      #expiration_duration            = 120
-      #open_violation_on_expiration   = false
-      #close_violations_on_expiration = true
 
       query = "SELECT count(result) FROM SyntheticCheck WHERE result = 'FAILED' and monitorName = 'test_2'"
 

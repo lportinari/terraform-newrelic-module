@@ -30,11 +30,8 @@ resource "newrelic_nrql_alert_condition" "nrql_alert" {
   enabled                        = try(each.value.enabled, true)
   violation_time_limit_seconds   = try(each.value.violation_time_limit_seconds)
   aggregation_window             = try(each.value.aggregation_window, 60)
-  aggregation_method             = try(each.value.aggregation_method, "cadence")
+  aggregation_method             = try(each.value.aggregation_method, "event_flow")
   aggregation_delay              = try(each.value.aggregation_delay, 120)
-  expiration_duration            = try(each.value.expiration_duration)
-  open_violation_on_expiration   = try(each.value.open_violation_on_expiration)
-  close_violations_on_expiration = try(each.value.close_violations_on_expiration, true)
 
   nrql {
     query = try(each.value.query)

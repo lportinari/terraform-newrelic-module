@@ -1,34 +1,49 @@
-resource "newrelic_synthetics_monitor" "monitor" {
-  status           = "ENABLED"
-  name             = var.synthetics_monitor_name
-  period           = var.synthetics_monitor_period
-  uri              = var.application_url
-  type             = "SIMPLE"
-  locations_public = var.synthetics_public_location
-
-  treat_redirect_as_failure = var.synthetics_treat_redirect_as_failure
-  validation_string         = var.synthetics_validation_string
-  bypass_head_request = var.synthetics_bypass_head_request
-  verify_ssl          = var.synthetics_verify_ssl
+data "newrelic_alert_policy" "alert_policy" {
+  name = var.newrelic_alert_policy_id
 }
 
-resource "newrelic_synthetics_multilocation_alert_condition" "synthetics_multilocation_alert" {
-  policy_id = var.policy_id
+resource "newrelic_synthetics_monitor" "monitor" {
+  for_each         = var.synthetics_monitor_name
+  name             = each.key
+  status           = try(each.value.status, "ENABLED")
+  period           = try(each.value.period, "EVERY_MINUTE")
+  uri              = each.value.uri
+  type             = try(each.value.type, "SIMPLE")
+  locations_public = try(each.value.locations_public, ["AWS_US_WEST_1", "AWS_SA_EAST_1"])
+  custom_header {
+    name  = try(each.value.custom_header_name, null)
+    value = try(each.value.custom_header_value, null)
+  }
+  treat_redirect_as_failure = try(each.value.treat_redirect_as_failure, false)
+  validation_string         = try(each.value.validation_string, null)
+  bypass_head_request       = try(each.value.bypass_head_request, true)
+  verify_ssl                = try(each.value.verify_ssl, false)
+}
 
-  name                         = var.synthetics_multilocation_alert_name
-  runbook_url                  = var.synthetics_runbook_url
-  enabled                      = true
-  violation_time_limit_seconds = var.synthetics_multilocation_violation_time_limit_seconds
+resource "newrelic_nrql_alert_condition" "nrql_alert" {
+  policy_id                      = data.newrelic_alert_policy.alert_policy.id
+  for_each                       = var.nrql_alert_name
+  name                           = each.key
+  type                           = try(each.value.type, "static")
+  description                    = try(each.value.description, null)
+  runbook_url                    = try(each.value.runbook_url)
+  enabled                        = try(each.value.enabled, true)
+  violation_time_limit_seconds   = try(each.value.violation_time_limit_seconds)
+  aggregation_window             = try(each.value.aggregation_window, 60)
+  aggregation_method             = try(each.value.aggregation_method, "cadence")
+  aggregation_delay              = try(each.value.aggregation_delay, 120)
+  expiration_duration            = try(each.value.expiration_duration)
+  open_violation_on_expiration   = try(each.value.open_violation_on_expiration)
+  close_violations_on_expiration = try(each.value.close_violations_on_expiration, true)
 
-  entities = [
-    newrelic_synthetics_monitor.monitor.id
-  ]
-
-  critical {
-    threshold = var.synthetics_multilocation_critical_threshold
+  nrql {
+    query = try(each.value.query)
   }
 
-  warning {
-    threshold = var.synthetics_multilocation_warning_threshold
+  critical {
+    operator              = try(each.value.critical_operator, "above")
+    threshold             = try(each.value.critical_threshold)
+    threshold_duration    = try(each.value.critical_threshold_duration)
+    threshold_occurrences = "ALL"
   }
 }
